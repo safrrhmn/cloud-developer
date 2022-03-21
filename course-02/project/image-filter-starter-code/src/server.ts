@@ -48,7 +48,11 @@ import { url } from 'inspector';
 
   // Root Endpoint
   // Displays a simple message to the user
-
+  // Root Endpoint
+  // Displays a simple message to the user
+  app.get("/", async (req, res) => {
+    res.send("try GET /filteredimage?image_url={{}}")
+  });
 
   // Start the Server
   app.listen(port, () => {
