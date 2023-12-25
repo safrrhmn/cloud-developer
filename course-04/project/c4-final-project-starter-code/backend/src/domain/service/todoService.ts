@@ -4,7 +4,7 @@ import { TodosRepo } from '../repository/todosRepo'
 import { UpdateTodoRequest } from '../requests/UpdateTodoRequest'
 import { CreateTodoRequest } from '../requests/CreateTodoRequest'
 import { TodoItemEntity } from '../models/TodoItemEntity'
-import { v5 as uuidv5 } from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 
 const logger = createLogger('TodoService')
 const repo: TodosRepo = new TodosRepo()
@@ -15,7 +15,7 @@ const repo: TodosRepo = new TodosRepo()
  * @param newTodo
  */
 export const createTodo = async (userId: string, newTodo: CreateTodoRequest) => {
-  const todoId = uuidv5
+  const todoId = uuidv4()
   const todoItem: TodoItemEntity = {
     userId,
     todoId,
@@ -25,6 +25,7 @@ export const createTodo = async (userId: string, newTodo: CreateTodoRequest) => 
     done: false,
     attachmentUrl: `https://${process.env.ATTACHMENT_S3_BUCKET}.s3.amazonaws.com/${todoId}`
   }
+  logger.info(`Attempting to persist new TOOD job with ${JSON.stringify(todoItem)}`)
   return repo.save(todoItem)
 }
 

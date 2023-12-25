@@ -12,8 +12,7 @@ const logger = createLogger('TodosRepo')
 
 export class TodosRepo {
   constructor(private readonly docClient: DocumentClient = new XAWS.DynamoDB.DocumentClient(),
-              private readonly todosTable = process.env.TODOS_TABLE,
-              private readonly createdAtIndex = process.env.TODOS_CREATED_AT_INDEX) {
+              private readonly todosTable = process.env.TODOS_TABLE) {
 
   }
 
@@ -24,15 +23,14 @@ export class TodosRepo {
   getAll = async (userId: string) => {
     const params: DocumentClient.QueryInput = {
       TableName: this.todosTable,
-      IndexName: this.createdAtIndex,
       KeyConditionExpression: 'userId = :userId',
       ExpressionAttributeValues: {
-        userId: userId
+        ':userId': userId
       }
     }
     const result = await this.docClient.query(params).promise()
-    logger.info('Successfully received getAll() response from dynamodb.')
-    return result
+    logger.info(`Successfully received getAll() response from dynamodb. ${JSON.stringify(result)}`)
+    return result.Items
   }
 
   /**
@@ -46,18 +44,26 @@ export class TodosRepo {
     const params: DocumentClient.UpdateItemInput = {
       TableName: this.todosTable,
       Key: {
-        userId: userId,
-        todoId: todoId
+        userId,
+        todoId
       },
-      UpdateExpression: 'set dueDate = :dueDate, done = :done',
+      UpdateExpression: 'set #name = :name, #dueDate = :dueDate, #done = :done',
+      ExpressionAttributeNames: {
+        '#name': 'name',
+        '#dueDate': 'dueDate',
+        '#done': 'done'
+      },
       ExpressionAttributeValues: {
-        dueDate: toBeUpdated.dueDate,
-        done: toBeUpdated.done
-      }
+        ':name': toBeUpdated.name,
+        ':dueDate': toBeUpdated.dueDate,
+        ':done': toBeUpdated.done
+      },
+      ReturnValues: 'ALL_NEW'
     }
     const result = await this.docClient.update(params).promise()
-    logger.info('Successfully got response from dynamodb after update.')
-    return result
+    logger.info(`Successfully got response from dynamodb after update. ${JSON.stringify(result)}`)
+    const item = result.Attributes;
+    return item as TodoItemEntity;
   }
 
   /**
@@ -69,10 +75,10 @@ export class TodosRepo {
       TableName: this.todosTable,
       Item: item
     }
-    logger.info('New TODO Save Request to DB {}', params)
-    const result = await this.docClient.put(params).promise()
-    logger.info('Successfully saved TODO item {}.', item)
-    return result
+    logger.info(`New TODO Save Request to DB ${JSON.stringify(params)}`)
+    await this.docClient.put(params).promise()
+    logger.info(`Successfully saved TODO item ${JSON.stringify(item)}`)
+    return item
   }
 
   /**
