@@ -5,7 +5,7 @@ import Axios from 'axios'
 import { UpdateTodoRequest } from '../types/UpdateTodoRequest';
 
 export async function getTodos(idToken: string): Promise<Todo[]> {
-  console.log('Fetching todos')
+  console.log(`Fetching todos with token ${idToken}`)
 
   const response = await Axios.get(`${apiEndpoint}/todos`, {
     headers: {
@@ -13,8 +13,8 @@ export async function getTodos(idToken: string): Promise<Todo[]> {
       'Authorization': `Bearer ${idToken}`
     },
   })
-  console.log('Todos:', response.data)
-  return response.data.items
+  console.log('Todos:', response)
+  return response.data
 }
 
 export async function createTodo(
@@ -27,7 +27,8 @@ export async function createTodo(
       'Authorization': `Bearer ${idToken}`
     }
   })
-  return response.data.item
+  console.log(response)
+  return response.data
 }
 
 export async function patchTodo(
