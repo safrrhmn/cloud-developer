@@ -6,6 +6,8 @@ plugins:
   - serverless-webpack
   - serverless-iam-roles-per-function
   - serverless-plugin-tracing
+  - serverless-reqvalidator-plugin
+  - serverless-aws-documentation
 
 provider:
   name: aws
@@ -33,6 +35,40 @@ provider:
   logs:
     # Enable API Gateway logs
     restApi: true
+custom:
+  documentation:
+    api:
+      info:
+        version: '1.0.0'
+        title: My TODO App API
+        description: Documentation of my super simple TODO app
+    models:
+      - name: CreateTODORequest
+        contentType: "application/json"
+        schema:
+          required:
+            - name
+            - dueDate
+          properties:
+            name:
+              type: string
+            dueDate:
+              type: string
+      - name: UpdateTODORequest
+        contentType: "application/json"
+        schema:
+          required:
+            - dueDate
+            - name
+            - done
+          properties:
+            dueDate:
+              type: string
+            name:
+              type: string
+            done:
+              type: boolean
+
 
 functions:
   Auth:
@@ -56,30 +92,37 @@ functions:
     handler: src/lambda/http/createTodo.handler
     events:
       - http:
+          documentation:
+            summary: "Create TODO"
+            description: "Create a new TODO"
+            requestModels:
+              "application/json": CreateTODORequest
+          reqValidatorName: xMyRequestValidator
           method: post
           path: todos
           cors: true
           authorizer: Auth
-          request:
-            schemas:
-              application/json: ${file(models/create-todo-model.json)}
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:PutItem
         Resource: !GetAtt TodosTable.Arn
 
+
   UpdateTodo:
     handler: src/lambda/http/updateTodo.handler
     events:
       - http:
+          documentation:
+            summary: "Update TODO"
+            description: "Update a new TODO"
+            requestModels:
+              "application/json": UpdateTODORequest
+          reqValidatorName: xMyRequestValidator
           method: patch
           path: todos/{todoId}
           cors: true
           authorizer: Auth
-          request:
-            schemas:
-              application/json: ${file(models/update-todo-model.json)}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -121,11 +164,10 @@ functions:
 
 resources:
   Resources:
-    # Validator for the request body
-    RequestBodyValidator:
+    xMyRequestValidator:
       Type: "AWS::ApiGateway::RequestValidator"
       Properties:
-        Name: 'request-body-validator'
+        Name: 'my-req-validator'
         RestApiId:
           Ref: ApiGatewayRestApi
         ValidateRequestBody: true
@@ -198,9 +240,11 @@ resources:
           Id: s3BucketPolicy
           Version: "2012-10-17"
           Statement:
-            - Sid: PublicReadForGetBucketObjects
+            - Sid: PublicReadWriteBucketPolicy
               Effect: Allow
               Principal: "*"
-              Action: "s3:GetObject"
+              Action:
+                - s3:GetObject
+                - s3:PutObject
               Resource: "arn:aws:s3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*"
         Bucket: !Ref AttachmentsBucket

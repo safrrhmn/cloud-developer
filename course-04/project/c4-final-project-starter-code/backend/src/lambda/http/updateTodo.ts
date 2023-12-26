@@ -17,6 +17,12 @@ export const handler = middy(
     const todoId: string = event.pathParameters.todoId
     logger.info(`Update todoId ${todoId}`)
     const toBeUpdate: UpdateTodoRequest = JSON.parse(event.body)
+    if (toBeUpdate.name === '' || toBeUpdate.dueDate === '' || !toBeUpdate.done) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify('Invalid request body')
+      }
+    }
     logger.info(`Update body ${event.body}`)
     const updatedTodo = await updateTodo(userId, todoId, toBeUpdate)
     return {
